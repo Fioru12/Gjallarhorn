@@ -1,0 +1,26 @@
+# Gjallarhorn configuration file.
+# Copy this file to config.yaml and fill in the channels you want to use.
+# Any value here can also be set (or overridden) via environment variables -
+# see .env.example. Environment variables always win over config.yaml.
+# A channel left blank is simply skipped at send time, never a crash.
+
+hub:
+  dedup_window_seconds: 300
+  default_channels: ["telegram", "webhook", "email"]
+  db_path: "gjallarhorn.db"
+
+telegram:
+  bot_token: ""
+  chat_id: ""
+
+webhook:
+  url: ""
+
+smtp:
+  host: ""
+  port: 587
+  username: ""
+  password: ""
+  from_addr: ""
+  to_addrs: []
+  use_tls: true
