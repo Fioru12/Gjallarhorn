@@ -7,11 +7,25 @@ import yaml
 DEFAULT_CONFIG: Dict[str, Any] = {
     "hub": {
         "dedup_window_seconds": 300,
-        "default_channels": ["telegram", "webhook", "email"],
+        "default_channels": ["telegram", "webhook", "teams", "email"],
         "db_path": "gjallarhorn.db",
     },
     "telegram": {"bot_token": "", "chat_id": ""},
     "webhook": {"url": ""},
+    "teams": {"url": ""},
+    "jira": {
+        "base_url": "",
+        "email": "",
+        "api_token": "",
+        "project_key": "",
+        "issue_type": "Bug",
+    },
+    "servicenow": {
+        "instance": "",
+        "username": "",
+        "password": "",
+        "table": "incident",
+    },
     "smtp": {
         "host": "",
         "port": 587,
@@ -64,6 +78,29 @@ def _apply_env_overrides(config: Dict[str, Any]) -> Dict[str, Any]:
 
     if os.environ.get("WEBHOOK_URL"):
         config["webhook"]["url"] = os.environ["WEBHOOK_URL"]
+
+    if os.environ.get("TEAMS_WEBHOOK_URL"):
+        config["teams"]["url"] = os.environ["TEAMS_WEBHOOK_URL"]
+
+    if os.environ.get("JIRA_BASE_URL"):
+        config["jira"]["base_url"] = os.environ["JIRA_BASE_URL"]
+    if os.environ.get("JIRA_EMAIL"):
+        config["jira"]["email"] = os.environ["JIRA_EMAIL"]
+    if os.environ.get("JIRA_API_TOKEN"):
+        config["jira"]["api_token"] = os.environ["JIRA_API_TOKEN"]
+    if os.environ.get("JIRA_PROJECT_KEY"):
+        config["jira"]["project_key"] = os.environ["JIRA_PROJECT_KEY"].strip().upper()
+    if os.environ.get("JIRA_ISSUE_TYPE"):
+        config["jira"]["issue_type"] = os.environ["JIRA_ISSUE_TYPE"]
+
+    if os.environ.get("SERVICENOW_INSTANCE"):
+        config["servicenow"]["instance"] = os.environ["SERVICENOW_INSTANCE"].rstrip("/")
+    if os.environ.get("SERVICENOW_USERNAME"):
+        config["servicenow"]["username"] = os.environ["SERVICENOW_USERNAME"]
+    if os.environ.get("SERVICENOW_PASSWORD"):
+        config["servicenow"]["password"] = os.environ["SERVICENOW_PASSWORD"]
+    if os.environ.get("SERVICENOW_TABLE"):
+        config["servicenow"]["table"] = os.environ["SERVICENOW_TABLE"].strip().lower()
 
     if os.environ.get("SMTP_HOST"):
         config["smtp"]["host"] = os.environ["SMTP_HOST"]

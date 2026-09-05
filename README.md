@@ -37,6 +37,9 @@
    Canali (skip silenzioso se non configurati)
         +--> TelegramChannel (Bot API)
         +--> WebhookChannel  (Slack/Discord JSON generico)
+        +--> TeamsChannel    (Microsoft Teams MessageCard)
+        +--> JiraChannel     (apre un ticket su Jira Cloud)
+        +--> ServiceNowChannel (apre un incident su ServiceNow)
         +--> SMTPChannel     (email)
               |
               v
@@ -53,6 +56,15 @@
 - **Nessuna funzionalità aspirazionale**: tutto ciò che è descritto in questo README corrisponde a codice presente in `core/`, `api/` e `tests/` — niente canali "in roadmap", niente endpoint non implementati.
 
 ---
+
+## Chi lo usa già nella suite
+
+Gjallarhorn non è più solo teorico: è integrato, in modo opzionale e non-breaking, in due moduli della suite Asgard, ciascuno con la propria copia di `gjallarhorn_client.py`:
+
+- **Heimdall** (`Heimdall/core/notifier.py`, funzione `send_alert_via_gjallarhorn`): se `GJALLARHORN_HUB_URL` è impostata, gli alert HIDS vengono inoltrati all'hub (`source="Heimdall"`) invece che al `TelegramNotifier` diretto, che resta il fallback automatico se l'hub non è configurato o non è raggiungibile.
+- **Sleipnir** (`Sleipnir/core/engine.py`, funzione `notify_gjallarhorn_outcome`): se `GJALLARHORN_HUB_URL` è impostata, ogni playbook che raggiunge `CONTAINED` o `FAILED` notifica l'hub (`source="Sleipnir"`); altrimenti nessuna chiamata di rete viene effettuata.
+
+In entrambi i casi l'integrazione è puramente additiva: senza `GJALLARHORN_HUB_URL` impostata nell'ambiente, i due moduli si comportano esattamente come prima dell'integrazione.
 
 ## Come lo userebbe un altro modulo Asgard
 
@@ -85,6 +97,9 @@ Ogni canale è configurabile via variabili d'ambiente (vedi `.env.example`) o vi
 |------------|-----------------------------------------------------------------|---------------------------------------------------------------------|
 | Telegram   | `bot_token`, `chat_id`                                          | `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`                            |
 | Webhook    | `url` (Slack/Discord incoming webhook)                          | `WEBHOOK_URL`                                                       |
+| Teams      | `url` (Microsoft Teams Incoming Webhook)                        | `TEAMS_WEBHOOK_URL`                                                 |
+| Jira       | `base_url`, `email`, `api_token`, `project_key` (+ `issue_type`) | `JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`, `JIRA_PROJECT_KEY`, `JIRA_ISSUE_TYPE` |
+| ServiceNow | `instance`, `username`, `password`, `table` (default `incident`)  | `SERVICENOW_INSTANCE`, `SERVICENOW_USERNAME`, `SERVICENOW_PASSWORD`, `SERVICENOW_TABLE` |
 | Email SMTP | `host`, `from_addr`, `to_addrs` (+ opzionali `username`/`password`) | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`, `SMTP_TO`, `SMTP_USE_TLS` |
 
 Un canale senza configurazione viene saltato in fase di invio (log informativo), non blocca gli altri canali.
@@ -136,7 +151,7 @@ Il campo opzionale `channels` nel payload di `/api/v1/notify` permette di scegli
 pytest -v
 ```
 
-La suite (35 test) copre: dedup/throttling della finestra temporale, ognuno dei tre canali mockato (nessuna vera chiamata Telegram/SMTP/webhook), l'endpoint `/api/v1/notify` con `TestClient` (401 senza chiave, 200 con chiave corretta, 422 su payload malformato) e `gjallarhorn_client.notify()` con hub irraggiungibile.
+La suite (50 test) copre: dedup/throttling della finestra temporale, ognuno dei sei canali mockato (nessuna vera chiamata Telegram/SMTP/webhook/Teams/Jira/ServiceNow), l'endpoint `/api/v1/notify` con `TestClient` (401 senza chiave, 200 con chiave corretta, 422 su payload malformato) e `gjallarhorn_client.notify()` con hub irraggiungibile.
 
 ---
 

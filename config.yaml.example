@@ -6,7 +6,7 @@
 
 hub:
   dedup_window_seconds: 300
-  default_channels: ["telegram", "webhook", "email"]
+  default_channels: ["telegram", "webhook", "teams", "email"]
   db_path: "gjallarhorn.db"
 
 telegram:
@@ -15,6 +15,22 @@ telegram:
 
 webhook:
   url: ""
+
+teams:
+  url: ""
+
+jira:
+  base_url: ""
+  email: ""
+  api_token: ""
+  project_key: ""
+  issue_type: "Bug"
+
+servicenow:
+  instance: ""
+  username: ""
+  password: ""
+  table: "incident"
 
 smtp:
   host: ""
