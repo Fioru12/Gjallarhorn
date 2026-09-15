@@ -112,3 +112,56 @@ class TestRoot:
         response = client.get("/")
         assert response.status_code == 200
         assert response.json()["service"] == "Gjallarhorn Alerting Hub"
+
+
+class TestMetricsEndpoint:
+    """
+    Regression tests: /metrics used to always report gjallarhorn_alerts_total
+    as 0 (it read a dict key, "history", that the underlying get_history()
+    return value never actually had) and gjallarhorn_configured_channels_total
+    as a hardcoded 6 (build_channels() always instantiates every channel type
+    regardless of whether it's actually configured). Both numbers must now
+    reflect real state.
+    """
+
+    def test_metrics_is_public(self, client):
+        response = client.get("/metrics")
+        assert response.status_code == 200
+
+    def test_configured_channels_is_zero_when_nothing_is_set_up(self, client):
+        response = client.get("/metrics")
+        assert "gjallarhorn_configured_channels_total 0" in response.text
+
+    def test_alerts_total_reflects_real_notification_count(self, client, monkeypatch):
+        headers = {"X-API-Key": "test-api-key-123"}
+        for i in range(3):
+            client.post(
+                "/api/v1/notify",
+                json={"source": "metrics-test", "severity": "low", "title": f"event-{i}", "message": "m"},
+                headers=headers,
+            )
+        response = client.get("/metrics")
+        assert "gjallarhorn_alerts_total 3" in response.text
+
+    def test_configured_channels_counts_only_actually_configured_ones(self, monkeypatch):
+        monkeypatch.setenv("GJALLARHORN_API_KEY", "test-api-key-123")
+        monkeypatch.setenv("GJALLARHORN_CONFIG", "this-file-does-not-exist.yaml")
+        fd, db_path = tempfile.mkstemp(suffix=".db")
+        os.close(fd)
+        monkeypatch.setenv("GJALLARHORN_DB_PATH", db_path)
+        monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "fake-token")
+        monkeypatch.setenv("TELEGRAM_CHAT_ID", "fake-chat-id")
+
+        import api.server as server_module
+        importlib.reload(server_module)
+
+        try:
+            with TestClient(server_module.app) as test_client:
+                response = test_client.get("/metrics")
+                assert "gjallarhorn_configured_channels_total 1" in response.text
+        finally:
+            server_module.db.close()
+            try:
+                os.remove(db_path)
+            except OSError:
+                pass

@@ -79,3 +79,31 @@ def history(
     offset: int = Query(default=0, ge=0),
 ) -> Dict[str, Any]:
     return hub.get_history(limit=limit, offset=offset)
+
+
+@app.get("/metrics")
+def prometheus_metrics():
+    from fastapi.responses import PlainTextResponse
+    # get_history() returns {"total": <real COUNT(*)>, "items": <page>, ...}.
+    # The previous version read stats["history"] (a key that never existed
+    # in that dict) and reported 0 unconditionally; fixed to use the real
+    # total instead of a page slice capped at `limit`.
+    stats = db.get_history(limit=1)
+    total_alerts = stats.get("total", 0)
+
+    # len(channels) is always 6 - build_channels() always instantiates every
+    # channel type regardless of configuration (see core/channels/__init__.py),
+    # so that would always report "6 configured" even on a fresh install with
+    # nothing set up. Count only channels that are actually usable.
+    configured_channels = sum(1 for c in channels.values() if c.is_configured())
+
+    metrics_text = f"""# HELP gjallarhorn_alerts_total Total notifications recorded in Gjallarhorn
+# TYPE gjallarhorn_alerts_total counter
+gjallarhorn_alerts_total {total_alerts}
+
+# HELP gjallarhorn_configured_channels_total Number of notification channels with valid configuration
+# TYPE gjallarhorn_configured_channels_total gauge
+gjallarhorn_configured_channels_total {configured_channels}
+"""
+    return PlainTextResponse(content=metrics_text)
+
