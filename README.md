@@ -151,7 +151,7 @@ Il campo opzionale `channels` nel payload di `/api/v1/notify` permette di scegli
 pytest -v
 ```
 
-La suite (50 test) copre: dedup/throttling della finestra temporale, ognuno dei sei canali mockato (nessuna vera chiamata Telegram/SMTP/webhook/Teams/Jira/ServiceNow), l'endpoint `/api/v1/notify` con `TestClient` (401 senza chiave, 200 con chiave corretta, 422 su payload malformato) e `gjallarhorn_client.notify()` con hub irraggiungibile.
+La suite (63 test) copre: dedup/throttling della finestra temporale, ognuno dei sei canali mockato (nessuna vera chiamata Telegram/SMTP/webhook/Teams/Jira/ServiceNow), l'endpoint `/api/v1/notify` con `TestClient` (401 senza chiave, 200 con chiave corretta, 422 su payload malformato) e `gjallarhorn_client.notify()` con hub irraggiungibile.
 
 ---
 
