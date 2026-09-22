@@ -7,6 +7,8 @@ from core.channels.teams import TeamsChannel
 from core.channels.jira import JiraChannel
 from core.channels.servicenow import ServiceNowChannel
 from core.channels.email_smtp import SMTPChannel
+from core.channels.pagerduty import PagerDutyChannel
+from core.channels.opsgenie import OpsgenieChannel
 
 __all__ = [
     "NotificationChannel",
@@ -16,6 +18,8 @@ __all__ = [
     "JiraChannel",
     "ServiceNowChannel",
     "SMTPChannel",
+    "PagerDutyChannel",
+    "OpsgenieChannel",
     "build_channels",
 ]
 
@@ -34,6 +38,8 @@ def build_channels(config: Dict[str, Any]) -> Dict[str, NotificationChannel]:
     teams_cfg = config.get("teams", {}) or {}
     jira_cfg = config.get("jira", {}) or {}
     servicenow_cfg = config.get("servicenow", {}) or {}
+    pagerduty_cfg = config.get("pagerduty", {}) or {}
+    opsgenie_cfg = config.get("opsgenie", {}) or {}
 
     return {
         "telegram": TelegramChannel(
@@ -67,5 +73,12 @@ def build_channels(config: Dict[str, Any]) -> Dict[str, NotificationChannel]:
             from_addr=smtp_cfg.get("from_addr", ""),
             to_addrs=smtp_cfg.get("to_addrs") or [],
             use_tls=bool(smtp_cfg.get("use_tls", True)),
+        ),
+        "pagerduty": PagerDutyChannel(
+            routing_key=pagerduty_cfg.get("routing_key", ""),
+        ),
+        "opsgenie": OpsgenieChannel(
+            api_key=opsgenie_cfg.get("api_key", ""),
+            eu=bool(opsgenie_cfg.get("eu", False)),
         ),
     }
