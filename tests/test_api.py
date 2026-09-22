@@ -87,6 +87,60 @@ class TestNotifyEndpoint:
         assert second.json()["status"] == "suppressed"
 
 
+class TestAlertmanagerWebhookEndpoint:
+    def test_requires_api_key(self, client):
+        response = client.post(
+            "/api/v1/notify/alertmanager",
+            json={"status": "firing", "alerts": []},
+        )
+        assert response.status_code == 401
+
+    def test_forwards_firing_alert_mapping_labels_and_annotations(self, client):
+        response = client.post(
+            "/api/v1/notify/alertmanager",
+            json={
+                "status": "firing",
+                "alerts": [
+                    {
+                        "labels": {"alertname": "RagnarokDown", "severity": "critical"},
+                        "annotations": {"summary": "Ragnarok non risponde"},
+                    }
+                ],
+            },
+            headers={"X-API-Key": "test-api-key-123"},
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["status"] == "ok"
+        assert body["forwarded"] == 1
+        assert body["results"][0]["status"] == "sent"
+
+    def test_maps_warning_to_medium(self, client):
+        response = client.post(
+            "/api/v1/notify/alertmanager",
+            json={
+                "status": "resolved",
+                "alerts": [
+                    {
+                        "labels": {"alertname": "BackupStale", "severity": "warning"},
+                        "annotations": {},
+                    }
+                ],
+            },
+            headers={"X-API-Key": "test-api-key-123"},
+        )
+        assert response.status_code == 200
+        assert response.json()["results"][0]["status"] == "sent"
+
+    def test_no_alerts_returns_400(self, client):
+        response = client.post(
+            "/api/v1/notify/alertmanager",
+            json={"status": "firing", "alerts": []},
+            headers={"X-API-Key": "test-api-key-123"},
+        )
+        assert response.status_code == 400
+
+
 class TestHistoryEndpoint:
     def test_history_requires_api_key(self, client):
         response = client.get("/api/v1/history")

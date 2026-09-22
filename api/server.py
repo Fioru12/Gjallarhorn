@@ -54,8 +54,58 @@ def read_root():
         "status": "online",
         "service": "Gjallarhorn Alerting Hub",
         "version": "1.0.0",
-        "endpoints": ["/api/v1/notify", "/api/v1/history"],
+        "endpoints": ["/api/v1/notify", "/api/v1/notify/alertmanager", "/api/v1/history"],
     }
+
+
+_SEVERITY_MAP = {
+    "critical": "critical",
+    "emergency": "critical",
+    "high": "high",
+    "warning": "medium",
+    "warn": "medium",
+    "info": "low",
+    "none": "low",
+}
+
+
+class AlertmanagerWebhook(BaseModel):
+    """Payload standard di Alertmanager (docs: prometheus-alertmanager/notifications)."""
+
+    status: str = "firing"
+    alerts: List[Dict[str, Any]] = Field(default_factory=list)
+
+
+@app.post("/api/v1/notify/alertmanager", dependencies=[Depends(require_api_key)])
+def notify_alertmanager(payload: AlertmanagerWebhook) -> Dict[str, Any]:
+    """Riceve webhook POST da Alertmanager e lo traduce nel canale Gjallarhorn."""
+    accepted = 0
+    results: List[Dict[str, Any]] = []
+    if not payload.alerts:
+        raise HTTPException(status_code=400, detail="No alerts to forward")
+    for alert in payload.alerts:
+        labels = alert.get("labels", {})
+        annotations = alert.get("annotations", {})
+        severity = _SEVERITY_MAP.get(str(labels.get("severity", "warning")).lower(), "medium")
+        title = (
+            annotations.get("summary")
+            or labels.get("alertname")
+            or "Asgard alert"
+        )
+        message = annotations.get("description") or annotations.get("message") or ""
+        try:
+            results.append(
+                hub.notify(
+                    source="alertmanager",
+                    severity=severity,
+                    title=str(title),
+                    message=str(message)[:8192],
+                )
+            )
+            accepted += 1
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+    return {"status": "ok", "forwarded": accepted, "results": results}
 
 
 @app.post("/api/v1/notify", dependencies=[Depends(require_api_key)])
