@@ -35,6 +35,8 @@ DEFAULT_CONFIG: Dict[str, Any] = {
         "to_addrs": [],
         "use_tls": True,
     },
+    "pagerduty": {"routing_key": ""},
+    "opsgenie": {"api_key": "", "eu": False},
 }
 
 
@@ -121,6 +123,18 @@ def _apply_env_overrides(config: Dict[str, Any]) -> Dict[str, Any]:
         ]
     if os.environ.get("SMTP_USE_TLS"):
         config["smtp"]["use_tls"] = os.environ["SMTP_USE_TLS"].lower() in (
+            "1",
+            "true",
+            "yes",
+        )
+
+    if os.environ.get("PAGERDUTY_ROUTING_KEY"):
+        config["pagerduty"]["routing_key"] = os.environ["PAGERDUTY_ROUTING_KEY"]
+
+    if os.environ.get("OPSGENIE_API_KEY"):
+        config["opsgenie"]["api_key"] = os.environ["OPSGENIE_API_KEY"]
+    if os.environ.get("OPSGENIE_EU"):
+        config["opsgenie"]["eu"] = os.environ["OPSGENIE_EU"].lower() in (
             "1",
             "true",
             "yes",

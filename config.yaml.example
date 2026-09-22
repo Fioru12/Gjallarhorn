@@ -40,3 +40,11 @@ smtp:
   from_addr: ""
   to_addrs: []
   use_tls: true
+
+# On-call escalation (env: PAGERDUTY_ROUTING_KEY / OPSGENIE_API_KEY / OPSGENIE_EU).
+pagerduty:
+  routing_key: ""
+
+opsgenie:
+  api_key: ""
+  eu: false
